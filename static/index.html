@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1>Monitor Dashboard</h1>
+                <p class="subtitle">实时监控与配置管理</p>
+
+                <nav class="main-nav">
+                    <button id="nav-history" class="nav-item active" onclick="switchView('history')">通知历史</button>
+                    <button id="nav-config" class="nav-item" onclick="switchView('config')">监控配置</button>
+                    <button id="nav-generic" class="nav-item" onclick="switchView('generic')">通用配置</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Generic Config View -->
+            <div id="view-generic" class="view-section hidden">
+                <!-- Global Config Section -->
+                <section class="card">
+                    <div class="card-header">
+                        <h2>通用配置</h2>
+                        <button id="save-global-btn" class="btn primary-btn">保存配置</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="global-webhook">企业微信 Webhook URL</label>
+                                <input type="text" id="global-webhook"
+                                    placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...">
+                            </div>
+                            <div class="form-group">
+                                <label for="global-interval">检查间隔 (秒)</label>
+                                <input type="number" id="global-interval" min="10" placeholder="3600">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Configuration View -->
+            <div id="view-config" class="view-section hidden">
+                <section class="card config-section">
+                    <div class="card-header">
+                        <h2>监控目标配置</h2>
+                        <button id="add-target-btn" class="btn primary-btn">+ 添加目标</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="targets-list" class="targets-grid">
+                            <!-- Targets will be inserted here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- History View -->
+            <div id="view-history" class="view-section">
+                <section class="card history-section">
+                    <div class="card-header">
+                        <h2>监控历史</h2>
+                        <div class="history-controls">
+                            <select id="limit-selector" class="form-select"
+                                style="margin-right: 10px; padding: 5px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <option value="10" selected>10 条/页</option>
+                                <option value="20">20 条/页</option>
+                                <option value="50">50 条/页</option>
+                                <option value="100">100 条/页</option>
+                            </select>
+                            <select id="source-filter" class="form-select"
+                                style="margin-right: 10px; padding: 5px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <option value="all">所有来源</option>
+                            </select>
+                            <button id="refresh-history-btn" class="btn icon-btn" title="刷新">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M23 4v6h-6"></path>
+                                    <path d="M1 20v-6h6"></path>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15">
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="publish_date" style="cursor: pointer;">发布时间 <span
+                                            class="sort-indicator">▼</span></th>
+                                    <th>标题</th>
+                                    <th>来源</th>
+                                    <th>操作</th>
+                                    <th class="sortable" data-sort="fetched_at"
+                                        style="text-align: right; cursor: pointer;">抓取时间 <span
+                                            class="sort-indicator"></span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-body">
+                                <!-- History items will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="prev-page-btn" class="btn secondary-btn" disabled>上一页</button>
+                        <span id="page-info">第 1 / 1 页</span>
+                        <button id="next-page-btn" class="btn secondary-btn" disabled>下一页</button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Adding/Editing Target -->
+    <div id="target-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">添加监控目标</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="target-form">
+                    <div class="form-group">
+                        <label for="target-name">名称</label>
+                        <input type="text" id="target-name" placeholder="例如：通知公告" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="target-url">URL 地址</label>
+                        <input type="url" id="target-url" placeholder="http://..." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="target-keywords">关键字过滤 (逗号分隔，留空表示抓取所有)</label>
+                        <input type="text" id="target-keywords" placeholder="例如：通知, 公告">
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label for="target-enabled" style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="target-enabled" checked style="margin-right: 8px;">
+                            启用此监控目标
+                        </label>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn secondary-btn close-modal">取消</button>
+                        <button type="submit" class="btn primary-btn">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2"></script>
+</body>
+
+</html>

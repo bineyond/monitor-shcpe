@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  monitor:
+    build: .
+    image: monitor-app:latest
+    container_name: monitor-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=Asia/Shanghai
+      # 设置数据库文件路径到持久化目录
+      - DB_FILE=/app/data/monitor.db
+      # - WEBHOOK_URL=your_webhook_url_here
+    volumes:
+      # 挂载 data 目录用于持久化数据库
+      - ./data:/app/data
+      # 挂载 config.json (如果需要配置 Targets 或其他项)
+      # 注意：如果宿主机没有 config.json，Docker 会把它当做目录创建，导致报错。
+      # 建议先在该目录下创建一个 config.json 或只使用默认配置。
+      # - ./config.json:/app/config.json

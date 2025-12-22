@@ -79,9 +79,12 @@ func loadConfig() *Config {
 		fmt.Println("Note: config.json not found, using default configuration.")
 	}
 
-	// Env var overrides (still useful for Webhook URL)
+	// Env var overrides
 	if webhookURL := os.Getenv("WEBHOOK_URL"); webhookURL != "" {
 		config.WebhookURL = webhookURL
+	}
+	if dbFile := os.Getenv("DB_FILE"); dbFile != "" {
+		config.DBFile = dbFile
 	}
 
 	return config

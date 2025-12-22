@@ -22,3 +22,5 @@ history.txt
 # OS
 .DS_Store
 Thumbs.db
+
+monitor.db

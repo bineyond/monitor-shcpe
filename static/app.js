@@ -253,14 +253,18 @@ function renderHistory(history) {
         return;
     }
 
-    history.forEach(item => {
+    history.forEach((item, index) => {
         const tr = document.createElement('tr');
+
+        // Calculate sequence number
+        const seqNum = (historyState.page - 1) * historyState.limit + index + 1;
 
         // Format dates
         const fetchedAt = item.fetched_at ? new Date(item.fetched_at).toLocaleString() : '-';
         const publishDate = item.date || '-';
 
         tr.innerHTML = `
+            <td class="date-cell" style="text-align: center;">${seqNum}</td>
             <td class="date-cell">${publishDate}</td>
             <td style="font-weight: 500;">${item.title || '无标题'}</td>
             <td><span class="source-badge">${item.source || '未知'}</span></td>

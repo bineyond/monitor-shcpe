@@ -214,6 +214,7 @@ th {
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 td {

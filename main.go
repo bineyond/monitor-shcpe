@@ -56,15 +56,9 @@ type Announcement struct {
 func loadConfig() *Config {
 	// Default config
 	config := &Config{
-		CheckInterval: 300,
+		CheckInterval: 7200,
 		DBFile:        "monitor.db",
-		Targets: []TargetConfig{
-			{
-				Name:     "通知公告",
-				URL:      "http://www.shcpe.com.cn/content/shcpe/news/announce.html",
-				Keywords: []string{"票交所发", "通知", "公告"},
-			},
-		},
+		Targets:       []TargetConfig{},
 	}
 
 	// Try to load from config.json

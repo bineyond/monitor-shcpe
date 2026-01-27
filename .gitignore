@@ -18,6 +18,7 @@ history.txt
 *.swp
 *.swo
 *~
+.claude/
 
 # OS
 .DS_Store

@@ -19,11 +19,12 @@ history.txt
 *.swo
 *~
 .claude/
-.html
+*.html
 
 # OS
 .DS_Store
 Thumbs.db
 
-monitor.dbmonitor.db-shm
+monitor.db
+monitor.db-shm
 monitor.db-wal

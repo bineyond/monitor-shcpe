@@ -58,7 +58,18 @@ func loadConfig() *Config {
 	config := &Config{
 		CheckInterval: 7200,
 		DBFile:        "monitor.db",
-		Targets:       []TargetConfig{},
+		Targets:       []TargetConfig{
+			// {
+			// 	Name:    "票交所公告",
+			// 	URL:     "http://www.shcpe.com.cn/content/shcpe/news/announce.html", // Assumption keeping existing
+			// 	Enabled: true,
+			// },
+			// {
+			// 	Name:    "票据信息披露平台-通知公告",
+			// 	URL:     "https://disclosure.cpisp.shcpe.com.cn/#/notice/noticeTicket/news-events",
+			// 	Enabled: true,
+			// },
+		},
 	}
 
 	// Try to load from config.json
@@ -322,6 +333,41 @@ func fetchAnnouncementsWithChrome(url string, keywords []string) ([]Announcement
 	}
 
 	var announcements []Announcement
+
+	// Special handling for disclosure.cpisp.shcpe.com.cn
+	if strings.Contains(url, "disclosure.cpisp.shcpe.com.cn") {
+		doc.Find(".law-item").Each(func(i int, s *goquery.Selection) {
+			title := strings.TrimSpace(s.Find(".law-item-title span").Text())
+			date := strings.TrimSpace(s.Find(".publish-date").Text())
+
+			// Build synthetic link since there is no direct detail page
+			// Using query param to make it unique per title
+			link := fmt.Sprintf("%s?title=%s", url, title)
+
+			shouldInclude := false
+			if len(keywords) == 0 {
+				shouldInclude = true
+			} else {
+				for _, kw := range keywords {
+					if strings.Contains(title, kw) {
+						shouldInclude = true
+						break
+					}
+				}
+			}
+
+			if shouldInclude && title != "" {
+				announcements = append(announcements, Announcement{
+					Title: title,
+					Date:  date,
+					Link:  link,
+				})
+			}
+		})
+
+		fmt.Printf("找到 %d 条公告 (disclosure)\n", len(announcements))
+		return announcements, nil
+	}
 
 	// 查找所有包含articleId的链接
 	doc.Find("a[targetid]").Each(func(i int, s *goquery.Selection) {

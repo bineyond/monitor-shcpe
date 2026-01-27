@@ -125,7 +125,9 @@ func sendWeChatWebhook(message string, webhookURL string) error {
 // Database helper functions
 
 func initDB(dbFile string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", dbFile)
+	// Enable WAL mode and set busy timeout to reduce locking errors
+	dsn := fmt.Sprintf("%s?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)", dbFile)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -263,9 +265,26 @@ func isURLVisited(db *sql.DB, url string) bool {
 }
 
 func saveAnnouncement(db *sql.DB, ann Announcement) error {
-	_, err := db.Exec("INSERT INTO announcements (url, title, publish_date, source, fetched_at) VALUES (?, ?, ?, ?, ?)",
-		ann.Link, ann.Title, ann.Date, ann.Source, time.Now())
-	return err
+	var err error
+	// Retry up to 5 times for database locking issues
+	for i := 0; i < 5; i++ {
+		_, err = db.Exec("INSERT INTO announcements (url, title, publish_date, source, fetched_at) VALUES (?, ?, ?, ?, ?)",
+			ann.Link, ann.Title, ann.Date, ann.Source, time.Now())
+
+		if err == nil {
+			return nil
+		}
+
+		// If database is locked, wait and retry
+		if strings.Contains(err.Error(), "database is locked") || strings.Contains(err.Error(), "SQLITE_BUSY") {
+			time.Sleep(time.Duration(100*(i+1)) * time.Millisecond)
+			continue
+		}
+
+		// For other errors (e.g. constraints), return immediately
+		return err
+	}
+	return fmt.Errorf("failed after 5 retries: %v", err)
 }
 
 func fetchAnnouncementsWithChrome(url string, keywords []string) ([]Announcement, error) {
@@ -544,6 +563,8 @@ func checkForNewAnnouncements(config *Config, db *sql.DB) error {
 
 				if err := saveAnnouncement(db, ann); err != nil {
 					fmt.Printf("Failed to save announcement to DB: %v\n", err)
+					// Verify we don't send notification if DB save fails, to avoid duplicates later
+					continue
 				}
 
 				fmt.Printf("发现新内容 [%s]: %s\n", target.Name, ann.Title)

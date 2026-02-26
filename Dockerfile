@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     vulkan-tools \
     libvulkan1 \
     xdg-utils \
+    tini \
     && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
     && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
@@ -46,12 +47,9 @@ WORKDIR /app
 COPY --from=builder /app/monitor .
 COPY --from=builder /app/static ./static
 
-# Create a volume for data persistence (optional but recommended)
-# Users can mount a host directory to /app/data and symlink, or just mount /app/monitor.db
-# We'll just document how to use it.
-
 # Expose port
 EXPOSE 8080
 
 # Run the application
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["./monitor"]

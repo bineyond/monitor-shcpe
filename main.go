@@ -1038,11 +1038,12 @@ func main() {
 	go func() {
 		monitor.Mu.RLock()
 		tempConfig := &Config{
-			Targets:        make([]TargetConfig, len(monitor.Config.Targets)),
-			WebhookURL:     monitor.Config.WebhookURL,
-			CheckInterval:  monitor.Config.CheckInterval,
-			DBFile:         monitor.Config.DBFile,
-			DeepSeekAPIKey: monitor.Config.DeepSeekAPIKey,
+			Targets:             make([]TargetConfig, len(monitor.Config.Targets)),
+			WebhookURL:          monitor.Config.WebhookURL,
+			CheckInterval:       monitor.Config.CheckInterval,
+			DBFile:              monitor.Config.DBFile,
+			DeepSeekAPIKey:      monitor.Config.DeepSeekAPIKey,
+			IgnoreOlderThanDays: monitor.Config.IgnoreOlderThanDays,
 		}
 		// Targets are now fetched from DB inside checkForNewAnnouncements, but we pass config for other fields.
 		// Wait, checkForNewAnnouncements queries DB for targets now, so we don't strictly need to copy Targets to tempConfig,
@@ -1065,8 +1066,9 @@ func main() {
 			monitor.Mu.RLock()
 			currentInterval := monitor.Config.CheckInterval
 			tempConfig := &Config{
-				WebhookURL:    monitor.Config.WebhookURL, // Only critical field needed
-				CheckInterval: currentInterval,
+				WebhookURL:          monitor.Config.WebhookURL, // Only critical field needed
+				CheckInterval:       currentInterval,
+				IgnoreOlderThanDays: monitor.Config.IgnoreOlderThanDays,
 			}
 			monitor.Mu.RUnlock()
 
@@ -1085,8 +1087,9 @@ func main() {
 			monitor.Mu.RLock()
 			currentInterval := monitor.Config.CheckInterval
 			tempConfig := &Config{
-				WebhookURL:    monitor.Config.WebhookURL,
-				CheckInterval: currentInterval,
+				WebhookURL:          monitor.Config.WebhookURL,
+				CheckInterval:       currentInterval,
+				IgnoreOlderThanDays: monitor.Config.IgnoreOlderThanDays,
 			}
 			monitor.Mu.RUnlock()
 

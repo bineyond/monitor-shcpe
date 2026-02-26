@@ -19,11 +19,12 @@ import (
 )
 
 type Config struct {
-	Targets        []TargetConfig `json:"targets"`
-	WebhookURL     string         `json:"webhook_url"`
-	CheckInterval  int            `json:"check_interval"`
-	DBFile         string         `json:"db_file"`
-	DeepSeekAPIKey string         `json:"deepseek_api_key"`
+	Targets             []TargetConfig `json:"targets"`
+	WebhookURL          string         `json:"webhook_url"`
+	CheckInterval       int            `json:"check_interval"`
+	DBFile              string         `json:"db_file"`
+	DeepSeekAPIKey      string         `json:"deepseek_api_key"`
+	IgnoreOlderThanDays int            `json:"ignore_older_than_days"`
 }
 
 type TargetConfig struct {
@@ -70,6 +71,7 @@ func loadConfig() *Config {
 			// 	Enabled: true,
 			// },
 		},
+		IgnoreOlderThanDays: 7,
 	}
 
 	// Try to load from config.json
@@ -526,6 +528,22 @@ func getEnabledTargets(db *sql.DB) ([]TargetConfig, error) {
 	return targets, nil
 }
 
+func parseDate(dateStr string) (time.Time, error) {
+	dateStr = strings.TrimSpace(dateStr)
+	formats := []string{
+		"2006.01.02",
+		"2006-01-02",
+		"2006/01/02",
+		"2006年01月02日",
+	}
+	for _, format := range formats {
+		if t, err := time.Parse(format, dateStr); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unknown date format")
+}
+
 func checkForNewAnnouncements(config *Config, db *sql.DB) error {
 	newCount := 0
 
@@ -571,7 +589,21 @@ func checkForNewAnnouncements(config *Config, db *sql.DB) error {
 
 				message := fmt.Sprintf("### 新的%s\n\n**标题**: [%s](%s)\n\n**时间**: %s\n\n", target.Name, ann.Title, ann.Link, ann.Date)
 
-				if config.WebhookURL != "" {
+				shouldNotify := true
+				if config.IgnoreOlderThanDays > 0 && ann.Date != "" {
+					parsedDate, err := parseDate(ann.Date)
+					if err == nil {
+						daysOld := int(time.Since(parsedDate).Hours() / 24)
+						if daysOld > config.IgnoreOlderThanDays {
+							shouldNotify = false
+							fmt.Printf("跳过通知 [%s]: %s (已发布 %d 天，超过 %d 天限制)\n", target.Name, ann.Title, daysOld, config.IgnoreOlderThanDays)
+						}
+					} else {
+						fmt.Printf("解析日期失败 [%s]: %v\n", ann.Date, err)
+					}
+				}
+
+				if shouldNotify && config.WebhookURL != "" {
 					if err := sendWeChatWebhook(message, config.WebhookURL); err != nil {
 						fmt.Printf("Warning: Failed to send webhook: %v\n", err)
 					} else {
@@ -678,6 +710,7 @@ func (m *Monitor) handleConfig(w http.ResponseWriter, r *http.Request) {
 		m.Config.WebhookURL = newConfig.WebhookURL
 		m.Config.CheckInterval = newConfig.CheckInterval
 		m.Config.DeepSeekAPIKey = newConfig.DeepSeekAPIKey
+		m.Config.IgnoreOlderThanDays = newConfig.IgnoreOlderThanDays
 
 		// Update Targets in DB
 		// Simple approach: Transactional delete all and re-insert, or careful diff.

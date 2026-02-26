@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         globalSaveBtn.addEventListener('click', async () => {
             const webhook = document.getElementById('global-webhook').value;
             const interval = parseInt(document.getElementById('global-interval').value);
+            const ignoreDays = parseInt(document.getElementById('global-ignore-days').value) || 0;
 
             if (isNaN(interval) || interval < 10) {
                 alert('检查间隔必须大于等于 10 秒');
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentConfig.webhook_url = webhook;
             currentConfig.check_interval = interval;
+            currentConfig.ignore_older_than_days = ignoreDays;
 
             await saveConfig();
             alert('通用配置已保存');
@@ -112,8 +114,10 @@ async function fetchConfig() {
         // Populate Global Config inputs
         const webhookInput = document.getElementById('global-webhook');
         const intervalInput = document.getElementById('global-interval');
+        const ignoreDaysInput = document.getElementById('global-ignore-days');
         if (webhookInput) webhookInput.value = currentConfig.webhook_url || '';
         if (intervalInput) intervalInput.value = currentConfig.check_interval || 3600;
+        if (ignoreDaysInput) ignoreDaysInput.value = currentConfig.ignore_older_than_days || 0;
 
         renderTargets();
         updateSourceFilterOptions(); // Populate filter dropdown

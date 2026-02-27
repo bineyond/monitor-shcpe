@@ -1016,10 +1016,20 @@ func main() {
 
 	// Start Web Server
 	go func() {
+		// Middleware to disable caching for static files
+		noCache := func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+				w.Header().Set("Pragma", "no-cache")
+				w.Header().Set("Expires", "0")
+				h.ServeHTTP(w, r)
+			})
+		}
+
 		http.HandleFunc("/api/config", monitor.handleConfig)
 		http.HandleFunc("/api/history", monitor.handleHistory)
 		http.HandleFunc("/api/repush", monitor.handleRepush)
-		http.Handle("/", http.FileServer(http.Dir("./static")))
+		http.Handle("/", noCache(http.FileServer(http.Dir("./static"))))
 
 		fmt.Printf("Web Dashboard running at http://localhost:8080\n")
 		if err := http.ListenAndServe(":8080", nil); err != nil {

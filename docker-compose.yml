@@ -3,7 +3,7 @@ version: '3.8'
 services:
   monitor:
     build: .
-    image: bineyond/monitor-shcpe:v1.1.3
+    image: bineyond/monitor-shcpe:latest
     container_name: monitor-app
     init: true
     restart: unless-stopped
